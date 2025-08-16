@@ -17,7 +17,9 @@
   in {
     devShells = forAllSystems (system: let
       pkgs = nixpkgsFor.${system};
-      python = pkgs.python3.withPackages (p: []);
+      python = pkgs.python3.withPackages (p: [
+        p.numpy
+      ]);
     in {
       default = pkgs.mkShell {
         packages = [
