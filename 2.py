@@ -78,6 +78,63 @@ def b_hess(vars):
     )
 
 
+def c_func(x):
+    return sum(
+        [100 * (x[i + 1] - x[i] ** 2) ** 2 + (1 - x[i]) ** 2 for i in range(1, 6)]
+    )
+
+
+def c_grad(x):
+    # 100 * (y - x²)² + (1-x)²
+    # 100 * (y - x²)² + 1-2x+x²
+    # 100 * (y²-2yx²-x⁴) + 1-2x+x²
+    # 100y²-200yx²-100x⁴ + 1-2x+x²
+
+    # If we roll-out each iteration:
+    #   100x2²-200x2x1²-100x1⁴ + 1-2x1+x1²
+    # + 100x3²-200x3x2²-100x2⁴ + 1-2x2+x2²
+    # + 100x4²-200x4x3²-100x3⁴ + 1-2x3+x3²
+    # + 100x5²-200x5x4²-100x4⁴ + 1-2x4+x4²
+    # + 100x6²-200x6x5²-100x5⁴ + 1-2x5+x5²
+    # + 100x7²-200x7x6²-100x6⁴ + 1-2x6+x6²
+
+    # Now we derive:
+    # x1: -400x2x1-400x1³-2+2x1
+    # x2: 200x2-200x1²-400x3x2-400x2³-2+2x2
+    # x3: 200x3-200x2²-400x4x3-400x3³-2+2x3
+    # ...
+    # x7: 200x7
+    grad = []
+    grad.append(-400 * x[1] * x[0] - 400 * x[0] ** 3 - 2 + 2 * x[0])
+    for i in range(1, 5):
+        grad.append(
+            200 * x[i]
+            - 200 * x[i - 1]
+            - 400 * x[i + 1] * x[i]
+            - 400 * x[i] ** 3
+            - 2
+            + 2 * x[i]
+        )
+    grad.append(200 * x[6])
+    return grad
+
+
+def c_hess(x):
+    # Define all derivations:
+    # x1: -400x2x1-400x1³-2+2x1
+    # x2: 200x2-200x1²-400x3x2-400x2³-2+2x2
+    # x3: 200x3-200x2²-400x4x3-400x3³-2+2x3
+    # x4: 200x4-200x3²-400x5x4-400x4³-2+2x4
+    # x5: 200x5-200x4²-400x6x5-400x5³-2+2x5
+    # x6: 200x6-200x5²-400x7x6-400x6³-2+2x6
+    # x7: 200x7
+
+    hess = []
+    hess.append()
+
+    return hess
+
+
 cases = {
     "a": {
         "func": a_func,
@@ -98,6 +155,16 @@ cases = {
         "max_iter": 10000,
         "epsilon": 1e-2,
         "optimum": np.array([1.0, 1.0]),
+    },
+    "c": {
+        "func": c_func,
+        "grad": c_grad,
+        "hess": c_hess,
+        "x0": np.array([-1.2, 1, 1, 1, 1, -1.2, 1]),
+        "alpha": [1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 5e-2],
+        "max_iter": 10000,
+        "epsilon": 1e-2,
+        "optimum": np.array([1, 1, 1, 1, 1, 1, 1]),
     },
 }
 
