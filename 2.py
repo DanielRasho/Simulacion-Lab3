@@ -199,6 +199,8 @@ for key, case in cases.items():
     min_y = float("+inf")
     max_y = float("-inf")
 
+    barChartData = {}
+
     # fig = plt.figure()
     resultTable = []
     for idx, (name, method) in enumerate(methods.items()):
@@ -222,6 +224,11 @@ for key, case in cases.items():
                     "error": f"{compute_error(result["best"], case["optimum"], case["func"]):.2%}",
                 }
             )
+
+            barChartData[name] = {
+                "labels": range(len(result["errors"])),
+                "errors": result["errors"],
+            }
 
             # print("Result x_sequence", result["x_sequence"])
 
@@ -322,3 +329,11 @@ for key, case in cases.items():
         plt.show()
 
     print("Solución óptima:", case["optimum"])
+
+    for name, info in barChartData.items():
+        plt.bar(info["labels"], info["errors"], label=name)
+
+    plt.xlabel("Iteraciones")
+    plt.ylabel("% Error")
+    plt.legend(title="Algoritmo")
+    plt.show()
