@@ -2,6 +2,7 @@
 import numpy as np
 import first as f
 import math as m
+import traceback
 import matplotlib.pyplot as plt
 
 
@@ -68,8 +69,8 @@ def b_grad(vars):
 
 
 def b_hess(vars):
-    x1 = vars[0]
-    x2 = vars[1]
+    x = vars[0]
+    y = vars[1]
     return np.array(
         [
             [-400 * y + 1200 * (x**2) + 2, -400 * x],
@@ -80,7 +81,7 @@ def b_hess(vars):
 
 def c_func(x):
     return sum(
-        [100 * (x[i + 1] - x[i] ** 2) ** 2 + (1 - x[i]) ** 2 for i in range(1, 6)]
+        [100 * (x[i + 1] - x[i] ** 2) ** 2 + (1 - x[i]) ** 2 for i in range(len(x) - 1)]
     )
 
 
@@ -106,7 +107,7 @@ def c_grad(x):
     # x7: 200x7
     grad = []
     grad.append(-400 * x[1] * x[0] - 400 * x[0] ** 3 - 2 + 2 * x[0])
-    for i in range(1, 5):
+    for i in range(1, 6):
         grad.append(
             200 * x[i]
             - 200 * x[i - 1]
@@ -116,7 +117,7 @@ def c_grad(x):
             + 2 * x[i]
         )
     grad.append(200 * x[6])
-    return grad
+    return np.array(grad)
 
 
 def c_hess(x):
@@ -130,9 +131,23 @@ def c_hess(x):
     # x7: 200x7
 
     hess = []
-    hess.append()
+    hess.append([-400 * x[1] - 1200 * x[0] ** 2 + 1, -400 * x[0], 0, 0, 0, 0, 0])
+    for i in range(1, 6):
+        row = []
+        for j in range(7):
+            if j == i - 1:
+                row.append(-400 * x[j])
+            elif j == i:
+                row.append(200 - 400 * x[i + 1] - 1200 * x[i] ** 2 + 2)
+            elif j == i + 1:
+                row.append(-400 * x[i])
+            else:
+                row.append(0)
+        hess.append(row)
 
-    return hess
+    hess.append([0, 0, 0, 0, 0, 0, 200])
+
+    return np.array(hess)
 
 
 cases = {
@@ -141,7 +156,7 @@ cases = {
         "grad": a_grad,
         "hess": a_hess,
         "x0": np.array([-3, 1]),
-        "alpha": [5e-2 for _ in range(6)],
+        "alpha": [9e-6, 5e-2, 5e-2, 5e-2, 85e-5, 5e-2],
         "max_iter": 5000,
         "epsilon": 1e-6,
         "optimum": np.array([-1.01463, -1.04453]),
@@ -151,7 +166,7 @@ cases = {
         "grad": b_grad,
         "hess": b_hess,
         "x0": np.array([-1.2, 1.0]),
-        "alpha": [1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 5e-2],
+        "alpha": [1e-3, 1e-3, 1e-3, 1e-9, 1e-3, 5e-2],
         "max_iter": 10000,
         "epsilon": 1e-2,
         "optimum": np.array([1.0, 1.0]),
@@ -161,9 +176,9 @@ cases = {
         "grad": c_grad,
         "hess": c_hess,
         "x0": np.array([-1.2, 1, 1, 1, 1, -1.2, 1]),
-        "alpha": [1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 5e-2],
+        "alpha": [5e-3, 1e-10, 2.5e-2, 1e-12, 1e-8, 1e-6],
         "max_iter": 10000,
-        "epsilon": 1e-2,
+        "epsilon": 1e-3,
         "optimum": np.array([1, 1, 1, 1, 1, 1, 1]),
     },
 }
@@ -204,7 +219,7 @@ for key, case in cases.items():
                     "converged": result["converged"],
                     "iterations": result["iterations"],
                     "solution": result["best"],
-                    "error": f"{compute_error(result["best"], case["optimum"], case["func"]):.6e}",
+                    "error": f"{compute_error(result["best"], case["optimum"], case["func"]):.2%}",
                 }
             )
 
@@ -252,6 +267,7 @@ for key, case in cases.items():
             # print(f"  Error final: {result['errors'][-1]:.6e}")
         except Exception as e:
             print(f"{name}: Error - {e}")
+            traceback.print_exc()
     # Add labels and title (optional but recommended)
 
     # ax.title(f"Plot for {key}")
@@ -260,7 +276,7 @@ for key, case in cases.items():
         "Algoritmo": 20,
         "Convergió": 20,
         "Iteraciones": 20,
-        "Solución": 40,
+        "Solución": 40 if key != "c" else 120,
         "Error": 15,
     }
     for title, width in titles.items():
@@ -275,10 +291,10 @@ for key, case in cases.items():
             if fieldName == "name":
                 print(fieldValue.ljust(width, " "), end="|")
             else:
-                print(f"{fieldValue}".center(width, " "), end="|")
+                print(f"{fieldValue}".replace("\n", "").center(width, " "), end="|")
         print()
 
-    if case != "c":
+    if key != "c":
         x_best = [case["optimum"][0]]
         y_best = [case["optimum"][1]]
         # z_best = [case["func"](case["optimum"])]
@@ -304,3 +320,5 @@ for key, case in cases.items():
 
         # Display the plot
         plt.show()
+
+    print("Solución óptima:", case["optimum"])
