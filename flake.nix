@@ -19,6 +19,7 @@
       pkgs = nixpkgsFor.${system};
       python = pkgs.python3.withPackages (p: [
         p.numpy
+        p.matplotlib
       ]);
     in {
       default = pkgs.mkShell {
