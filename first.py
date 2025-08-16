@@ -211,6 +211,7 @@ def conjugate_gradient_fletcher_reeves(
         beta = np.dot(grad_new, grad_new) / np.dot(grad, grad)
 
         # Nueva dirección conjugada
+        # print(f"d = -{grad_new} + {beta} * {d}")
         d = -grad_new + beta * d
 
         x = x_new
