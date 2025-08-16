@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 import numpy as np
 import first as f
+import math as m
 import matplotlib.pyplot as plt
+
+
+def has_nan(arr):
+    for a in arr:
+        if m.isnan(a):
+            return True
+    return False
 
 
 def compute_error(exper, theory, f):
     val_exp = f(exper)
     val_theory = f(theory)
 
-    return np.abs(val_exp - val_theory) / val_theory
+    return np.abs(val_exp - val_theory) / (1 if val_theory == 0 else val_theory)
 
 
 # f (x, y) = x⁴ + y⁴ − 4xy + (1 / 2) y + 1.
@@ -21,13 +29,53 @@ def a_func(vars):
 def a_grad(vars):
     x = vars[0]
     y = vars[1]
-    return np.array([4 * (x**3) - 4 * y, 4 * (y**3) - 4 * x + 0.5])
+    return np.array(
+        [
+            4 * (x**3) - 4 * y,
+            4 * (y**3) - 4 * x + 0.5,
+        ]
+    )
 
 
 def a_hess(vars):
     x = vars[0]
     y = vars[1]
-    return np.array([[12 * (x**2), 4], [-4, 12 * (y**2)]])
+    return np.array(
+        [
+            [12 * (x**2), 4],
+            [-4, 12 * (y**2)],
+        ]
+    )
+
+
+# f(x1, x2) = 100*(x2 − x1²)² + (1 − x1)²
+def b_func(vars):
+    x1 = vars[0]
+    x2 = vars[1]
+    return 100 * ((x2 - x1**2) ** 2) + (1 - x1) ** 2
+
+
+def b_grad(vars):
+    x = vars[0]
+    y = vars[1]
+    # Extended form: 100y^2-200yx^2+100x^4+1-2x+x^2
+    return np.array(
+        [
+            -400 * y * x + 400 * (x**3) - 2 + 2 * x,
+            200 * y - 200 * (x**2),
+        ]
+    )
+
+
+def b_hess(vars):
+    x1 = vars[0]
+    x2 = vars[1]
+    return np.array(
+        [
+            [-400 * y + 1200 * (x**2) + 2, -400 * x],
+            [-400 * x, 200],
+        ]
+    )
 
 
 cases = {
@@ -36,10 +84,20 @@ cases = {
         "grad": a_grad,
         "hess": a_hess,
         "x0": np.array([-3, 1]),
-        "alpha": 5e-2,
+        "alpha": [5e-2 for _ in range(6)],
         "max_iter": 5000,
         "epsilon": 1e-6,
         "optimum": np.array([-1.01463, -1.04453]),
+    },
+    "b": {
+        "func": b_func,
+        "grad": b_grad,
+        "hess": b_hess,
+        "x0": np.array([-1.2, 1.0]),
+        "alpha": [1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 5e-2],
+        "max_iter": 10000,
+        "epsilon": 1e-2,
+        "optimum": np.array([1.0, 1.0]),
     },
 }
 
@@ -61,14 +119,15 @@ for key, case in cases.items():
 
     # fig = plt.figure()
     resultTable = []
-    for name, method in methods.items():
+    for idx, (name, method) in enumerate(methods.items()):
+        print("Usando método:", name)
         try:
             result = method(
                 case["func"],
                 case["grad"],
                 case["hess"],
                 case["x0"],
-                case["alpha"],
+                case["alpha"][idx],
                 case["max_iter"],
                 case["epsilon"],
             )
@@ -84,11 +143,18 @@ for key, case in cases.items():
 
             # print("Result x_sequence", result["x_sequence"])
 
-            if name == "Polak-Ribière" or case == "c":
+            if case == "c":
                 continue
             if key == "a" or key == "b":
                 x = [x[0] for x in result["x_sequence"]]
+                if has_nan(x):
+                    print(f"Ignoring {name} because it has NaN!")
+                    continue
+
                 y = [x[1] for x in result["x_sequence"]]
+                if has_nan(y):
+                    print(f"Ignoring {name} because it has NaN!")
+                    continue
 
                 local_min_x = min(x)
                 local_max_x = max(x)
@@ -118,7 +184,7 @@ for key, case in cases.items():
             # print(f"  Convergencia: {result['converged']}")
             # print(f"  Error final: {result['errors'][-1]:.6e}")
         except Exception as e:
-            print(f"\n{name}: Error - {e}")
+            print(f"{name}: Error - {e}")
     # Add labels and title (optional but recommended)
 
     # ax.title(f"Plot for {key}")
@@ -154,8 +220,8 @@ for key, case in cases.items():
         # ax.scatter(x_best, y_best, z_best, label="Solución")
 
         # Define the range for x and y
-        x = np.linspace(min_x, max_x, int(max_x - min_x))
-        y = np.linspace(min_y, max_y, int(max_y - min_y))
+        x = np.linspace(min_x, max_x, int(min(max_x - min_x, 100)))
+        y = np.linspace(min_y, max_y, int(min(max_y - min_y, 100)))
 
         # Create a meshgrid
         X, Y = np.meshgrid(x, y)
@@ -167,7 +233,7 @@ for key, case in cases.items():
         plt.xlabel("X")
         plt.ylabel("Y")
         # ax.set_zlabel("f(X,Y)")
-        plt.contour(X, Y, Z, levels=int(max_x - min_x), cmap="viridis")
+        plt.contour(X, Y, Z, levels=int(min(max_x - min_x, 50)), cmap="viridis")
 
         # Display the plot
         plt.show()
